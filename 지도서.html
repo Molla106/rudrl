@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교과서 및 학습 자료 뷰어</title>
+    <style>
+        :root {
+            --bg-color: #f5f5f7;
+            --card-bg: #ffffff;
+            --text-main: #1d1d1f;
+            --text-secondary: #86868b;
+            --border-color: rgba(0, 0, 0, 0.08);
+            --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.04);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro KR", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 820px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        /* 모노톤 띠(배너) 형태의 상단 헤더 디자인 */
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header-banner {
+            display: inline-block;
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid var(--border-color);
+            padding: 22px 36px;
+            border-radius: 18px;
+            box-shadow: var(--shadow-sm);
+            width: 100%;
+        }
+
+        .eyebrow {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            color: var(--text-main);
+            font-size: 1.85rem;
+            font-weight: 700;
+            letter-spacing: -0.015em;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.92rem;
+        }
+
+        /* 필터 카드 영역 */
+        .filter-card {
+            background-color: var(--card-bg);
+            padding: 28px 32px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 24px;
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--bg-color);
+        }
+
+        .filter-group:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .filter-group:first-child {
+            padding-top: 0;
+        }
+
+        .filter-label {
+            min-width: 110px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            letter-spacing: -0.01em;
+        }
+
+        .filter-options {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            flex-grow: 1;
+        }
+
+        .filter-btn {
+            padding: 7px 14px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover:not(:disabled) {
+            border-color: var(--text-main);
+            color: var(--text-main);
+        }
+
+        .filter-btn.active {
+            background-color: var(--text-main);
+            color: white;
+            border-color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .filter-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #fafafa;
+        }
+
+        /* 결과 화면 영역 */
+        .result-card {
+            display: none;
+            background-color: var(--card-bg);
+            padding: 32px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-sm);
+            text-align: center;
+        }
+
+        .result-card.active {
+            display: block;
+        }
+
+        .result-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 24px;
+        }
+
+        .image-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .image-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-color);
+        }
+
+        .image-wrapper img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        @media (max-width: 680px) {
+            body {
+                padding: 16px 12px;
+            }
+            .filter-card, .result-card {
+                padding: 20px;
+            }
+            .filter-group {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .filter-label {
+                min-width: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 모노톤 띠 형태로 감싸진 상단 헤더 -->
+    <header class="header">
+        <div class="header-banner">
+            <span class="eyebrow">Textbook Archive</span>
+            <h1>교과서 및 학습 자료 뷰어</h1>
+            <p class="subtitle">조건을 단계별로 선택하여 필요한 학습 자료를 확인하세요.</p>
+        </div>
+    </header>
+
+    <!-- 필터 선택 카드 -->
+    <div class="filter-card">
+        <div class="filter-group">
+            <span class="filter-label">교육과정 연도</span>
+            <div class="filter-options" id="yearOptions"></div>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">출판사</span>
+            <div class="filter-options" id="publisherOptions"></div>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">학년 / 과목</span>
+            <div class="filter-options" id="gradeOptions"></div>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">단원</span>
+            <div class="filter-options" id="unitOptions"></div>
+        </div>
+        <div class="filter-group">
+            <span class="filter-label">소단원</span>
+            <div class="filter-options" id="subUnitOptions"></div>
+        </div>
+    </div>
+
+    <!-- 결과 이미지 출력 카드 -->
+    <div class="result-card" id="resultCard">
+        <div class="result-title" id="resultTitle">선택한 자료</div>
+        <div class="image-container" id="imageContainer"></div>
+    </div>
+</div>
+
+<script>
+    const textbookData = {
+        "2022 개정": {
+            "비상교육": {
+                "고등학교 수학": {
+                    "Ⅰ. 다항식": {
+                        "1. 다항식의 연산": { path: "images/2015/donga/u1_s3/", count: 13 },
+                        "2. 인수분해": { path: "images/2022/visang/math/u1_s2/", count: 1 }
+                    },
+                    "Ⅱ. 방정식과 부등식": {
+                        "1. 복소수와 이차방정식": { path: "images/2022/visang/math/u2_s1/", count: 2 }
+                    }
+                },
+                "수학Ⅰ": {
+                    "Ⅰ. 지수함수와 로그함수": {
+                        "1. 지수": { path: "images/2022/visang/m1/u1_s1/", count: 2 }
+                    }
+                }
+            }
+        }
+    };
+
+    let selectedState = {
+        year: null,
+        publisher: null,
+        grade: null,
+        unit: null,
+        subUnit: null
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+        renderYears();
+    });
+
+    function renderYears() {
+        const container = document.getElementById('yearOptions');
+        container.innerHTML = '';
+        
+        Object.keys(textbookData).forEach(year => {
+            const btn = document.createElement('button');
+            btn.className = `filter-btn ${selectedState.year === year ? 'active' : ''}`;
+            btn.textContent = year;
+            btn.onclick = () => selectYear(year);
+            container.appendChild(btn);
+        });
+
+        renderPublishers();
+    }
+
+    function selectYear(year) {
+        selectedState.year = year;
+        selectedState.publisher = null;
+        selectedState.grade = null;
+        selectedState.unit = null;
+        selectedState.subUnit = null;
+        hideResult();
+        renderYears();
+    }
+
+    function renderPublishers() {
+        const container = document.getElementById('publisherOptions');
+        container.innerHTML = '';
+
+        if (!selectedState.year) {
+            container.innerHTML = '<span style="color:var(--text-secondary); font-size:0.88rem; padding:4px 0;">연도를 먼저 선택해주세요.</span>';
+            renderGrades();
+            return;
+        }
+
+        const publishers = Object.keys(textbookData[selectedState.year]);
+        publishers.forEach(pub => {
+            const btn = document.createElement('button');
+            btn.className = `filter-btn ${selectedState.publisher === pub ? 'active' : ''}`;
+            btn.textContent = pub;
+            btn.onclick = () => selectPublisher(pub);
+            container.appendChild(btn);
+        });
+        renderGrades();
+    }
+
+    function selectPublisher(pub) {
+        selectedState.publisher = pub;
+        selectedState.grade = null;
+        selectedState.unit = null;
+        selectedState.subUnit = null;
+        hideResult();
+        renderPublishers();
+    }
+
+    function renderGrades() {
+        const container = document.getElementById('gradeOptions');
+        container.innerHTML = '';
+
+        if (!selectedState.publisher) {
+            container.innerHTML = '<span style="color:var(--text-secondary); font-size:0.88rem; padding:4px 0;">출판사를 먼저 선택해주세요.</span>';
+            renderUnits();
+            return;
+        }
+
+        const grades = Object.keys(textbookData[selectedState.year][selectedState.publisher]);
+        grades.forEach(grade => {
+            const btn = document.createElement('button');
+            btn.className = `filter-btn ${selectedState.grade === grade ? 'active' : ''}`;
+            btn.textContent = grade;
+            btn.onclick = () => selectGrade(grade);
+            container.appendChild(btn);
+        });
+        renderUnits();
+    }
+
+    function selectGrade(grade) {
+        selectedState.grade = grade;
+        selectedState.unit = null;
+        selectedState.subUnit = null;
+        hideResult();
+        renderGrades();
+    }
+
+    function renderUnits() {
+        const container = document.getElementById('unitOptions');
+        container.innerHTML = '';
+
+        if (!selectedState.grade) {
+            container.innerHTML = '<span style="color:var(--text-secondary); font-size:0.88rem; padding:4px 0;">학년을 먼저 선택해주세요.</span>';
+            renderSubUnits();
+            return;
+        }
+
+        const units = Object.keys(textbookData[selectedState.year][selectedState.publisher][selectedState.grade]);
+        units.forEach(unit => {
+            const btn = document.createElement('button');
+            btn.className = `filter-btn ${selectedState.unit === unit ? 'active' : ''}`;
+            btn.textContent = unit;
+            btn.onclick = () => selectUnit(unit);
+            container.appendChild(btn);
+        });
+        renderSubUnits();
+    }
+
+    function selectUnit(unit) {
+        selectedState.unit = unit;
+        selectedState.subUnit = null;
+        hideResult();
+        renderUnits();
+    }
+
+    function renderSubUnits() {
+        const container = document.getElementById('subUnitOptions');
+        container.innerHTML = '';
+
+        if (!selectedState.unit) {
+            container.innerHTML = '<span style="color:var(--text-secondary); font-size:0.88rem; padding:4px 0;">단원을 먼저 선택해주세요.</span>';
+            hideResult();
+            return;
+        }
+
+        const subUnits = Object.keys(textbookData[selectedState.year][selectedState.publisher][selectedState.grade][selectedState.unit]);
+        subUnits.forEach(subUnit => {
+            const btn = document.createElement('button');
+            // 소단원 버튼도 선택 시 active 클래스가 들어가도록 수정
+            btn.className = `filter-btn ${selectedState.subUnit === subUnit ? 'active' : ''}`;
+            btn.textContent = subUnit;
+            btn.onclick = () => selectSubUnit(subUnit);
+            container.appendChild(btn);
+        });
+    }
+
+    function selectSubUnit(subUnit) {
+        selectedState.subUnit = subUnit;
+        renderSubUnits(); // 선택 즉시 소단원 버튼 색상이 검정색으로 변하도록 갱신
+        showResult();
+    }
+
+    function showResult() {
+        const resultCard = document.getElementById('resultCard');
+        const resultTitle = document.getElementById('resultTitle');
+        const imageContainer = document.getElementById('imageContainer');
+
+        const { year, publisher, grade, unit, subUnit } = selectedState;
+        const targetData = textbookData[year][publisher][grade][unit][subUnit];
+
+        resultTitle.textContent = `${year} · ${publisher} · ${grade} · ${unit} · ${subUnit}`;
+        imageContainer.innerHTML = '';
+
+        for (let i = 1; i <= targetData.count; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-wrapper';
+            
+            const img = document.createElement('img');
+            img.src = `${targetData.path}${i}.webp`;
+            img.alt = `${subUnit} 학습 자료 ${i}`;
+            img.loading = 'lazy';
+
+            wrapper.appendChild(img);
+            imageContainer.appendChild(wrapper);
+        }
+
+        resultCard.classList.add('active');
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function hideResult() {
+        document.getElementById('resultCard').classList.remove('active');
+    }
+</script>
+
+</body>
+</html>
